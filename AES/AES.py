@@ -13,7 +13,8 @@ class Main:
 
 if __name__ == "__main__":
     m = Main()
-    data = "193de3bea0f4e22b9ac68d2ae9f84808"
+    # data = "193de3bea0f4e22b9ac68d2ae9f84808"
+    data = "3243f6a8885a308d313198a2e0370734"
     key = "2b7e151628aed2a6abf7158809cf4f3c"
     try:
         m.run(data, key)

@@ -6,6 +6,7 @@ class Cipher(object):
     def __init__(self, state, key):
         self.state = state
         self.key = key
+        self.roundKeys = []
         self.sBox = [[0]*16 for i in range(16)]
         self.invSBox = [[0]*16 for i in range(16)]
         self.defineSBox()
@@ -70,20 +71,28 @@ class Cipher(object):
                 self.invSBox[i][j] = int(invStringBox[i][j], 16)
 
     def encrypt(self):
-        print "key schedule"
         self.keySchedule()
         print "start"
         self.printState()
+        self.xor(self.state, self.roundKeys[0])
+        for i in range(1, 10):
+            self.subBytes()
+            self.shiftRows()
+            self.mixColumns()
+            self.xor(self.state, self.roundKeys[i])
+            print str(i) + " done"
+            self.printState()
         self.subBytes()
-        print "sub bytes"
-        self.printState()
         self.shiftRows()
-        print "shift rows"
-        self.printState()
-        self.mixColumns()
-        print "mix columns"
+        self.xor(self.state, self.roundKeys[i+1])
+        print "final"
         self.printState()
         return self.state
+
+    def xor(self, state, key):
+        for i in range(0, len(state.array)):
+            state.array[i] ^= key.array[i]
+        return state
 
     def subBytes(self):
         i = 0
@@ -131,36 +140,24 @@ class Cipher(object):
         return total
 
     def keySchedule(self):
-        self.printKey()
-        self.generateNextRoundKey(self.key)
-        # newOrder = [13, 14, 15, 12]
-        # firstCol = [self.key.array[i] for i in newOrder]
-        # for element in firstCol:
-        #     print format(element, '02x')
-        # i = 0
-        # for element in firstCol:
-        #     hex = format(element, '02x')
-        #     x = int(hex[0], 16)
-        #     y = int(hex[1], 16)
-        #     firstCol[i] = self.sBox[x][y]
-        #     i += 1
-        # for element in firstCol:
-        #     print format(element, '02x')
-        #
-        # firstCol[0] = firstCol[0] ^ self.key.array[0] ^ self.rcon[0]
-        # firstCol[1] = firstCol[1] ^ self.key.array[1]
-        # firstCol[2] = firstCol[2] ^ self.key.array[2]
-        # firstCol[3] = firstCol[3] ^ self.key.array[3]
-        #
-        # for element in firstCol:
-        #     print format(element, '02x')
+        roundKey = Key(None)
+        roundKey.array = self.key.array[:]
+        self.roundKeys.append(roundKey)
+        for i in range(0, 10):
+            roundKey = self.generateNextRoundKey(roundKey, i)
+            self.roundKeys.append(roundKey)
 
-    def generateNextRoundKey(self, key):
+    def generateNextRoundKey(self, key, roundNum):
         firstCol = self.rotWord(key)
         firstCol = self.subColBytes(firstCol)
-        firstCol = self.xorRcon(key, firstCol)
-        for element in firstCol:
-            print format(element, '02x')
+        firstCol = self.xorRcon(key, firstCol, roundNum)
+        secondCol = [firstCol[0] ^ key.get(1, 0), firstCol[1] ^ key.get(1, 1), firstCol[2] ^ key.get(1, 2), firstCol[3] ^ key.get(1, 3)]
+        thirdCol = [secondCol[0] ^ key.get(2, 0), secondCol[1] ^ key.get(2, 1), secondCol[2] ^ key.get(2, 2), secondCol[3] ^ key.get(2, 3)]
+        fourthCol = [thirdCol[0] ^ key.get(3, 0), thirdCol[1] ^ key.get(3, 1), thirdCol[2] ^ key.get(3, 2), thirdCol[3] ^ key.get(3, 3)]
+        newKeyArray = firstCol + secondCol + thirdCol + fourthCol
+        newKey = Key(None)
+        newKey.array = newKeyArray
+        return newKey
 
     def rotWord(self, key):
         newOrder = [13, 14, 15, 12]
@@ -177,8 +174,8 @@ class Cipher(object):
             i += 1
         return firstCol
 
-    def xorRcon(self, key, firstCol):
-        firstCol[0] = firstCol[0] ^ key.array[0] ^ self.rcon[0]
+    def xorRcon(self, key, firstCol, roundNum):
+        firstCol[0] = firstCol[0] ^ key.array[0] ^ self.rcon[roundNum]
         firstCol[1] = firstCol[1] ^ key.array[1]
         firstCol[2] = firstCol[2] ^ key.array[2]
         firstCol[3] = firstCol[3] ^ key.array[3]
@@ -188,6 +185,6 @@ class Cipher(object):
         for i in range(0, 4):
             print format(self.state.array[i*4], '02x') + " " + format(self.state.array[i*4+1], '02x') + " " + format(self.state.array[i*4+2], '02x') + " " + format(self.state.array[i*4+3], '02x')
 
-    def printKey(self):
+    def printKey(self, key):
         for i in range(0, 4):
-            print format(self.key.array[i*4], '02x') + " " + format(self.key.array[i*4+1], '02x') + " " + format(self.key.array[i*4+2], '02x') + " " + format(self.key.array[i*4+3], '02x')
+            print format(key.array[i*4], '02x') + " " + format(key.array[i*4+1], '02x') + " " + format(key.array[i*4+2], '02x') + " " + format(key.array[i*4+3], '02x')
