@@ -7,7 +7,7 @@ class Main:
 
     def run(self, data, _key):
         state = State(data)
-        key = Key(data)
+        key = Key(_key)
         cipher = Cipher(state, key)
         cipher.encrypt()
 

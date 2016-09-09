@@ -10,19 +10,19 @@ class Cipher(object):
         self.invSBox = [[0]*16 for i in range(16)]
         self.defineSBox()
         self.rcon = [
-            0x01000000, 0x02000000, 0x04000000, 0x08000000,
-            0x10000000, 0x20000000, 0x40000000, 0x80000000,
-            0x1B000000, 0x36000000, 0x6C000000, 0xD8000000,
-            0xAB000000, 0x4D000000, 0x9A000000, 0x2F000000,
-            0x5E000000, 0xBC000000, 0x63000000, 0xC6000000,
-            0x97000000, 0x35000000, 0x6A000000, 0xD4000000,
-            0xB3000000, 0x7D000000, 0xFA000000, 0xEF000000,
-            0xC5000000, 0x91000000, 0x39000000, 0x72000000,
-            0xE4000000, 0xD3000000, 0xBD000000, 0x61000000,
-            0xC2000000, 0x9F000000, 0x25000000, 0x4A000000,
-            0x94000000, 0x33000000, 0x66000000, 0xCC000000,
-            0x83000000, 0x1D000000, 0x3A000000, 0x74000000,
-            0xE8000000, 0xCB000000, 0x8D000000
+            0x01, 0x02, 0x04, 0x08,
+            0x10, 0x20, 0x40, 0x80,
+            0x1B, 0x36, 0x6C, 0xD8,
+            0xAB, 0x4D, 0x9A, 0x2F,
+            0x5E, 0xBC, 0x63, 0xC6,
+            0x97, 0x35, 0x6A, 0xD4,
+            0xB3, 0x7D, 0xFA, 0xEF,
+            0xC5, 0x91, 0x39, 0x72,
+            0xE4, 0xD3, 0xBD, 0x61,
+            0xC2, 0x9F, 0x25, 0x4A,
+            0x94, 0x33, 0x66, 0xCC,
+            0x83, 0x1D, 0x3A, 0x74,
+            0xE8, 0xCB, 0x8D
         ]
 
     def defineSBox(self):
@@ -116,30 +116,78 @@ class Cipher(object):
         return number
 
     def tt_multiply(self, first, second):
-        print "multiply"
         multiples = []
         multiples.append(first)
-        print str(0) + " " + str(multiples[0]) + " " + format(multiples[0], '08b')
 
         for i in range(1, 8):
             multiples.append(self.xtime(multiples[i - 1]))
-            print str(i) + " " + str(multiples[i]) + " " + format(multiples[i], '08b')
 
-        print "first= " + str(first) + " " + format(first, '08b')
-        print "second= " + str(second) + " " + format(second, '08b')
         secondBinary = format(second, '08b')
         reverseSecondBinary = secondBinary[::-1]
         total = 0
         for i in range(0, len(secondBinary)):
             if reverseSecondBinary[i] is '1':
-                print "adding " + str(i)
                 total ^= multiples[i]
-        print "total " + format(total, '08b')
         return total
 
     def keySchedule(self):
-        pass
+        self.printKey()
+        self.generateNextRoundKey(self.key)
+        # newOrder = [13, 14, 15, 12]
+        # firstCol = [self.key.array[i] for i in newOrder]
+        # for element in firstCol:
+        #     print format(element, '02x')
+        # i = 0
+        # for element in firstCol:
+        #     hex = format(element, '02x')
+        #     x = int(hex[0], 16)
+        #     y = int(hex[1], 16)
+        #     firstCol[i] = self.sBox[x][y]
+        #     i += 1
+        # for element in firstCol:
+        #     print format(element, '02x')
+        #
+        # firstCol[0] = firstCol[0] ^ self.key.array[0] ^ self.rcon[0]
+        # firstCol[1] = firstCol[1] ^ self.key.array[1]
+        # firstCol[2] = firstCol[2] ^ self.key.array[2]
+        # firstCol[3] = firstCol[3] ^ self.key.array[3]
+        #
+        # for element in firstCol:
+        #     print format(element, '02x')
+
+    def generateNextRoundKey(self, key):
+        firstCol = self.rotWord(key)
+        firstCol = self.subColBytes(firstCol)
+        firstCol = self.xorRcon(key, firstCol)
+        for element in firstCol:
+            print format(element, '02x')
+
+    def rotWord(self, key):
+        newOrder = [13, 14, 15, 12]
+        firstCol = [key.array[i] for i in newOrder]
+        return firstCol
+
+    def subColBytes(self, firstCol):
+        i = 0
+        for element in firstCol:
+            hex = format(element, '02x')
+            x = int(hex[0], 16)
+            y = int(hex[1], 16)
+            firstCol[i] = self.sBox[x][y]
+            i += 1
+        return firstCol
+
+    def xorRcon(self, key, firstCol):
+        firstCol[0] = firstCol[0] ^ key.array[0] ^ self.rcon[0]
+        firstCol[1] = firstCol[1] ^ key.array[1]
+        firstCol[2] = firstCol[2] ^ key.array[2]
+        firstCol[3] = firstCol[3] ^ key.array[3]
+        return firstCol
 
     def printState(self):
         for i in range(0, 4):
             print format(self.state.array[i*4], '02x') + " " + format(self.state.array[i*4+1], '02x') + " " + format(self.state.array[i*4+2], '02x') + " " + format(self.state.array[i*4+3], '02x')
+
+    def printKey(self):
+        for i in range(0, 4):
+            print format(self.key.array[i*4], '02x') + " " + format(self.key.array[i*4+1], '02x') + " " + format(self.key.array[i*4+2], '02x') + " " + format(self.key.array[i*4+3], '02x')
