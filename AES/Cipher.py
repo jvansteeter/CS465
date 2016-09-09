@@ -7,6 +7,7 @@ class Cipher(object):
         self.state = state
         self.key = key
         self.roundKeys = []
+        self.reverseRoundKeys = []
         self.sBox = [[0]*16 for i in range(16)]
         self.invSBox = [[0]*16 for i in range(16)]
         self.defineSBox()
@@ -72,22 +73,41 @@ class Cipher(object):
 
     def encrypt(self):
         self.keySchedule()
-        print "start"
-        self.printState()
+        # print "start"
+        # self.printState()
+        print "round keys"
+        for i in range(0, len(self.roundKeys)):
+            print i
+            self.printKey(self.roundKeys[i])
         self.xor(self.state, self.roundKeys[0])
         for i in range(1, 10):
             self.subBytes()
             self.shiftRows()
             self.mixColumns()
             self.xor(self.state, self.roundKeys[i])
-            print str(i) + " done"
-            self.printState()
+            # print str(i) + " done"
+            # self.printState()
         self.subBytes()
         self.shiftRows()
         self.xor(self.state, self.roundKeys[i+1])
-        print "final"
-        self.printState()
+        # print "final"
+        # self.printState()
+        # print "key size"
+        # print str(self.key.size()) + "-bit"
         return self.state
+
+    def decrypt(self):
+        print "decrypt"
+        self.xor(self.state, self.reverseRoundKeys[0])
+        for i in range(1, 10):
+            self.invShiftRows()
+            self.invSubBytes()
+            self.xor(self.state, self.reverseRoundKeys[i])
+            self.invMixColumns()
+        self.invShiftRows()
+        self.invSubBytes()
+        self.xor(self.state, self.reverseRoundKeys[i+1])
+        self.printState()
 
     def xor(self, state, key):
         for i in range(0, len(state.array)):
@@ -103,8 +123,21 @@ class Cipher(object):
             self.state.array[i] = self.sBox[x][y]
             i += 1
 
+    def invSubBytes(self):
+        i = 0
+        for element in self.state.array:
+            hex = format(element, '02x')
+            x = int(hex[0], 16)
+            y = int(hex[1], 16)
+            self.state.array[i] = self.invSBox[x][y]
+            i += 1
+
     def shiftRows(self):
         newOrder = [0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 1, 6, 11]
+        self.state.array = [self.state.array[i] for i in newOrder]
+
+    def invShiftRows(self):
+        newOrder = [0, 13, 10, 7, 4, 1, 14, 11, 8, 5, 2, 15, 12, 9, 6, 3]
         self.state.array = [self.state.array[i] for i in newOrder]
 
     def mixColumns(self):
@@ -113,6 +146,17 @@ class Cipher(object):
             two = self.state.get(i, 0) ^ self.tt_multiply(self.state.get(i, 1), 2) ^ self.tt_multiply(self.state.get(i, 2), 3) ^ self.state.get(i, 3)
             three = self.state.get(i, 0) ^ self.state.get(i, 1) ^ self.tt_multiply(self.state.get(i, 2), 2) ^ self.tt_multiply(self.state.get(i, 3), 3)
             four = self.tt_multiply(self.state.get(i, 0), 3) ^ self.state.get(i, 1) ^ self.state.get(i, 2) ^ self.tt_multiply(self.state.get(i, 3), 2)
+            self.state.set(i, 0, one)
+            self.state.set(i, 1, two)
+            self.state.set(i, 2, three)
+            self.state.set(i, 3, four)
+
+    def invMixColumns(self):
+        for i in range(0, 4):
+            one = self.tt_multiply(self.state.get(i, 0), 0x0e) ^ self.tt_multiply(self.state.get(i, 1), 0x0b) ^ self.tt_multiply(self.state.get(i, 2), 0x0d) ^ self.tt_multiply(self.state.get(i, 3), 0x09)
+            two = self.tt_multiply(self.state.get(i, 0), 0x09) ^ self.tt_multiply(self.state.get(i, 1), 0x0e) ^ self.tt_multiply(self.state.get(i, 2), 0x0b) ^ self.tt_multiply(self.state.get(i, 3), 0x0d)
+            three = self.tt_multiply(self.state.get(i, 0), 0x0d) ^ self.tt_multiply(self.state.get(i, 1), 0x09) ^ self.tt_multiply(self.state.get(i, 2), 0x0e) ^ self.tt_multiply(self.state.get(i, 3), 0x0b)
+            four = self.tt_multiply(self.state.get(i, 0), 0x0b) ^ self.tt_multiply(self.state.get(i, 1), 0x0d) ^ self.tt_multiply(self.state.get(i, 2), 0x09) ^ self.tt_multiply(self.state.get(i, 3), 0x0e)
             self.state.set(i, 0, one)
             self.state.set(i, 1, two)
             self.state.set(i, 2, three)
@@ -146,21 +190,35 @@ class Cipher(object):
         for i in range(0, 10):
             roundKey = self.generateNextRoundKey(roundKey, i)
             self.roundKeys.append(roundKey)
+        self.reverseRoundKeys = self.roundKeys[::-1]
+
+    # def generateNextRoundKey(self, key, roundNum):
+    #     firstCol = self.rotWord(key)
+    #     firstCol = self.subColBytes(firstCol)
+    #     firstCol = self.xorRcon(key, firstCol, roundNum)
+    #     secondCol = [firstCol[0] ^ key.get(1, 0), firstCol[1] ^ key.get(1, 1), firstCol[2] ^ key.get(1, 2), firstCol[3] ^ key.get(1, 3)]
+    #     thirdCol = [secondCol[0] ^ key.get(2, 0), secondCol[1] ^ key.get(2, 1), secondCol[2] ^ key.get(2, 2), secondCol[3] ^ key.get(2, 3)]
+    #     fourthCol = [thirdCol[0] ^ key.get(3, 0), thirdCol[1] ^ key.get(3, 1), thirdCol[2] ^ key.get(3, 2), thirdCol[3] ^ key.get(3, 3)]
+    #     newKeyArray = firstCol + secondCol + thirdCol + fourthCol
+    #     newKey = Key(None)
+    #     newKey.array = newKeyArray
+    #     return newKey
 
     def generateNextRoundKey(self, key, roundNum):
         firstCol = self.rotWord(key)
         firstCol = self.subColBytes(firstCol)
         firstCol = self.xorRcon(key, firstCol, roundNum)
-        secondCol = [firstCol[0] ^ key.get(1, 0), firstCol[1] ^ key.get(1, 1), firstCol[2] ^ key.get(1, 2), firstCol[3] ^ key.get(1, 3)]
-        thirdCol = [secondCol[0] ^ key.get(2, 0), secondCol[1] ^ key.get(2, 1), secondCol[2] ^ key.get(2, 2), secondCol[3] ^ key.get(2, 3)]
-        fourthCol = [thirdCol[0] ^ key.get(3, 0), thirdCol[1] ^ key.get(3, 1), thirdCol[2] ^ key.get(3, 2), thirdCol[3] ^ key.get(3, 3)]
-        newKeyArray = firstCol + secondCol + thirdCol + fourthCol
+        newKeyArray = firstCol[:]
+        for i in range(0, (key.size() / 32) - 1):
+            nextCol = [newKeyArray[i*4] ^ key.get(i+1, 0), newKeyArray[i*4+1] ^ key.get(i+1, 1), newKeyArray[i*4+2] ^ key.get(i+1, 2), newKeyArray[i*4+3] ^ key.get(i+1, 3)]
+            newKeyArray += nextCol
         newKey = Key(None)
         newKey.array = newKeyArray
         return newKey
 
     def rotWord(self, key):
-        newOrder = [13, 14, 15, 12]
+        lastIndex = len(key.array)
+        newOrder = [lastIndex-3, lastIndex-2, lastIndex-1, lastIndex-4]
         firstCol = [key.array[i] for i in newOrder]
         return firstCol
 
@@ -186,5 +244,5 @@ class Cipher(object):
             print format(self.state.array[i*4], '02x') + " " + format(self.state.array[i*4+1], '02x') + " " + format(self.state.array[i*4+2], '02x') + " " + format(self.state.array[i*4+3], '02x')
 
     def printKey(self, key):
-        for i in range(0, 4):
+        for i in range(0, key.size() / 32):
             print format(key.array[i*4], '02x') + " " + format(key.array[i*4+1], '02x') + " " + format(key.array[i*4+2], '02x') + " " + format(key.array[i*4+3], '02x')

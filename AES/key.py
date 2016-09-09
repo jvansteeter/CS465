@@ -10,3 +10,6 @@ class Key(object):
 
     def get(self, x, y):
         return self.array[x*4+y]
+
+    def size(self):
+        return len(self.array) * 8
