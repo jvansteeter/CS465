@@ -13,3 +13,9 @@ class State(object):
     def set(self, x, y, value):
         # print "\tsetting " + str(x*4+y) + " to " + format(value, '02x')
         self.array[x*4+y] = value
+
+    def state(self):
+        result = ""
+        for element in self.array:
+            result += format(element, '02x')
+        return result
