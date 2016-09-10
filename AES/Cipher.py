@@ -14,28 +14,9 @@ class Cipher(object):
             self.numRounds = 14
         self.numWords = 4
         self.numKeyWords = self.key.size() / 32
-        self.roundKeys = []
-        self.keyStream = []
-        self.reverseRoundKeys = []
-        self.reverseKeyStream = []
         self.sBox = [[0]*16 for i in range(16)]
         self.invSBox = [[0]*16 for i in range(16)]
         self.defineSBox()
-        self.rcon = [
-            0x01, 0x02, 0x04, 0x08,
-            0x10, 0x20, 0x40, 0x80,
-            0x1B, 0x36, 0x6C, 0xD8,
-            0xAB, 0x4D, 0x9A, 0x2F,
-            0x5E, 0xBC, 0x63, 0xC6,
-            0x97, 0x35, 0x6A, 0xD4,
-            0xB3, 0x7D, 0xFA, 0xEF,
-            0xC5, 0x91, 0x39, 0x72,
-            0xE4, 0xD3, 0xBD, 0x61,
-            0xC2, 0x9F, 0x25, 0x4A,
-            0x94, 0x33, 0x66, 0xCC,
-            0x83, 0x1D, 0x3A, 0x74,
-            0xE8, 0xCB, 0x8D
-        ]
 
     def defineSBox(self):
         invStringBox = [
@@ -83,11 +64,10 @@ class Cipher(object):
 
     def encrypt(self):
         print "CIPHER (ENCRYPT):"
-        self.keySchedule()
         print "round[0].input\t\t" + self.state.state()
-        self.xor(self.state, self.keyStream[0:16])
+        self.xor(self.state, self.key.keys[0:16])
         data = ""
-        for element in self.keyStream[0:16]:
+        for element in self.key.keys[0:16]:
             data += format(element, '02x')
         print "round[0].k_sch\t\t" + data
         for i in range(1, self.numRounds):
@@ -98,18 +78,18 @@ class Cipher(object):
             print "round[" + str(i) + "].s_row\t\t" + self.state.state()
             self.mixColumns()
             print "round[" + str(i) + "].m_col\t\t" + self.state.state()
-            self.xor(self.state, self.keyStream[i*16:i*16+16])
+            self.xor(self.state, self.key.keys[i*16:i*16+16])
             data = ""
-            for element in self.keyStream[i*16:i*16+16]:
+            for element in self.key.keys[i*16:i*16+16]:
                 data += format(element, '02x')
             print "round[" + str(i) + "].k_sch\t\t" + data
         self.subBytes()
         print "round[" + str(i + 1) + "].s_box\t\t" + self.state.state()
         self.shiftRows()
         print "round[" + str(i + 1) + "].s_row\t\t" + self.state.state()
-        self.xor(self.state, self.keyStream[(i+1)*16:(i+1)*16+16])
+        self.xor(self.state, self.key.keys[(i+1)*16:(i+1)*16+16])
         data = ""
-        for element in self.keyStream[(i + 1) * 16:(i + 1) * 16 + 16]:
+        for element in self.key.keys[(i + 1) * 16:(i + 1) * 16 + 16]:
             data += format(element, '02x')
         print "round[" + str(i + 1) + "].k_sch\t\t" + data
         print "round[" + str(i + 1) + "].output\t" + self.state.state()
@@ -119,31 +99,31 @@ class Cipher(object):
     def decrypt(self):
         print "CIPHER (DECRYPT):"
         print "round[0].input\t\t" + self.state.state()
-        self.xor(self.state, self.reverseKeyStream[0:16])
+        self.xor(self.state, self.key.reverseKeys[0:16])
         data = ""
-        for element in self.keyStream[0:16]:
+        for element in self.key.keys[0:16]:
             data += format(element, '02x')
         print "round[0].k_sch\t\t" + data
         for i in range(1, self.numRounds):
             print "round[" + str(i) + "].start\t\t" + self.state.state()
             self.invShiftRows()
-            print "round[" + str(i) + "].is_row\t\t" + self.state.state()
+            print "round[" + str(i) + "].is_row  \t" + self.state.state()
             self.invSubBytes()
-            print "round[" + str(i) + "].is_box\t\t" + self.state.state()
-            self.xor(self.state, self.reverseKeyStream[i*16:i*16+16])
+            print "round[" + str(i) + "].is_box  \t" + self.state.state()
+            self.xor(self.state, self.key.reverseKeys[i*16:i*16+16])
             data = ""
-            for element in self.reverseKeyStream[i * 16:i * 16 + 16]:
+            for element in self.key.reverseKeys[i * 16:i * 16 + 16]:
                 data += format(element, '02x')
-            print "round[" + str(i) + "].ik_sch\t\t" + data
+            print "round[" + str(i) + "].ik_sch  \t" + data
             self.invMixColumns()
-            print "round[" + str(i) + "].im_col\t\t" + self.state.state()
+            print "round[" + str(i) + "].im_col  \t" + self.state.state()
         self.invShiftRows()
         print "round[" + str(i + 1) + "].is_row\t" + self.state.state()
         self.invSubBytes()
         print "round[" + str(i + 1) + "].is_box\t" + self.state.state()
-        self.xor(self.state, self.reverseKeyStream[(i+1)*16:(i+1)*16+16])
+        self.xor(self.state, self.key.reverseKeys[(i+1)*16:(i+1)*16+16])
         data = ""
-        for element in self.reverseKeyStream[(i + 1) * 16:(i + 1) * 16 + 16]:
+        for element in self.key.reverseKeys[(i + 1) * 16:(i + 1) * 16 + 16]:
             data += format(element, '02x')
         print "round[" + str(i + 1) + "].ioutput\t" + self.state.state()
         print "key size"
@@ -222,63 +202,3 @@ class Cipher(object):
             if reverseSecondBinary[i] is '1':
                 total ^= multiples[i]
         return total
-
-    def keySchedule(self):
-        i = 0
-        self.keyStream = self.key.array[:]
-
-        i = self.numKeyWords
-        while i < (self.numWords * (self.numRounds + 1)):
-            temp = self.keyStream[len(self.keyStream)-4:len(self.keyStream)]
-            if i % self.numKeyWords is 0:
-                # print "first word " + format(temp[0], '02x') + format(temp[1], '02x') + format(temp[2], '02x') + format(temp[3], '02x')
-                temp = self.rotWord(temp)
-                # print "\trot word " + format(temp[0], '02x') + format(temp[1], '02x') + format(temp[2], '02x') + format(temp[3], '02x')
-                temp = self.subColBytes(temp)
-                # print "\tsub word " + format(temp[0], '02x') + format(temp[1], '02x') + format(temp[2], '02x') + format(temp[3], '02x')
-                temp[0] ^= self.rcon[i / self.numKeyWords - 1]
-                # print "\tafter rcon " + format(temp[0], '02x') + format(temp[1], '02x') + format(temp[2], '02x') + format(temp[3], '02x')
-            elif self.numKeyWords > 6 and i % self.numKeyWords is 4:
-                temp = self.subColBytes(temp)
-            xorWord = self.keyStream[(i - self.numKeyWords) * 4:(i - self.numKeyWords) * 4 + 4]
-            for j in range(0, len(temp)):
-                # print format(temp[j], '02x') + " " + format(xorWord[j], '02x'),
-                temp[j] ^= xorWord[j]
-                # print " = " + format(temp[j], '02x')
-                self.keyStream.append(temp[j])
-            # print "nextword " + format(temp[0], '02x') + format(temp[1], '02x') + format(temp[2], '02x') + format(temp[3], '02x')
-            i += 1
-        for j in range(0, len(self.keyStream), 16):
-            chunk = self.keyStream[j:j+16]
-            for k in range(0, 16):
-                self.reverseKeyStream.insert(k, chunk[k])
-
-    def rotWord(self, word):
-        newOrder = [1, 2, 3, 0]
-        result = [word[i] for i in newOrder]
-        return result
-
-    def subColBytes(self, firstCol):
-        i = 0
-        for element in firstCol:
-            hex = format(element, '02x')
-            x = int(hex[0], 16)
-            y = int(hex[1], 16)
-            firstCol[i] = self.sBox[x][y]
-            i += 1
-        return firstCol
-
-    def xorRcon(self, key, firstCol, roundNum):
-        firstCol[0] = firstCol[0] ^ key.array[0] ^ self.rcon[roundNum]
-        firstCol[1] = firstCol[1] ^ key.array[1]
-        firstCol[2] = firstCol[2] ^ key.array[2]
-        firstCol[3] = firstCol[3] ^ key.array[3]
-        return firstCol
-
-    def printState(self):
-        for i in range(0, 4):
-            print format(self.state.array[i*4], '02x') + " " + format(self.state.array[i*4+1], '02x') + " " + format(self.state.array[i*4+2], '02x') + " " + format(self.state.array[i*4+3], '02x')
-
-    def printKey(self, key):
-        for i in range(0, key.size() / 32):
-            print format(key.array[i*4], '02x') + " " + format(key.array[i*4+1], '02x') + " " + format(key.array[i*4+2], '02x') + " " + format(key.array[i*4+3], '02x')
