@@ -5,21 +5,37 @@ import java.util.Set;
 
 public class Main
 {
+    private static int BIT_LENGTH = 16;
+    private static Hasher hasher = new Hasher();
+    private static SecureRandom random = new SecureRandom();
+
     public static void main(String[] args)
     {
-        Hasher hasher = new Hasher();
-        SecureRandom random = new SecureRandom();
         Set<String> data = new HashSet<>();
-        boolean noMatch = true;
+        String startingBirthday = generateHash();
+        data.add(startingBirthday);
+//        boolean noMatch = true;
         int iterations =  0;
-        while (noMatch)
+        int collisions = 0;
+        while (true)
         {
-            JByte bitSet = hasher.hash(new BigInteger(130, random).toString(32), 64);
-//            BitSet bitSet = hasher.hash("test", 16);
-//            System.out.println(bitSet.toString());
-            noMatch = data.add(bitSet.toString());
             iterations++;
+            String hash = generateHash();
+            if (!data.add(hash))
+            {
+                collisions++;
+            }
+            if (hash.equals(startingBirthday))
+            {
+                break;
+            }
         }
-        System.out.println("Completed after " + iterations + " iterations");
+        System.out.println("Completed after " + iterations + " iterations and " + collisions + " collisions");
+    }
+
+    private static String generateHash()
+    {
+        JByte bitSet = hasher.hash(new BigInteger(130, random).toString(32), BIT_LENGTH);
+        return bitSet.toString();
     }
 }
