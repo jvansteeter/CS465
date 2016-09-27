@@ -39,22 +39,25 @@ public class Main
                     data.add(preImageTarget);
                     int iterations = 0;
                     int collisions = 0;
-                    while (true) {
+                    while (true)
+                    {
                         iterations++;
                         String hash = generateHash(bitLength);
-                        if (!data.add(hash)) {
-                            collisions++;
+                        if (!data.add(hash) && collisions == 0)
+                        {
+                            collisions = iterations;
                         }
-                        if (hash.equals(preImageTarget)) {
+                        if (hash.equals(preImageTarget))
+                        {
                             break;
                         }
                     }
-//                    writer.write("BIT SIZE[" + bitLength + "] TEST[" + j + "]:\tPre-Image Completed after\t\t" + iterations + "   \titerations and\t" + collisions + "\tcollisions\n");
+
                     writer.write("BIT SIZE[" + bitLength + "]                              ", 0, 15);
                     writer.write("TEST[" + j + "]:                                         ", 0, 10);
                     writer.write("Pre-Image Completed after\t" + iterations + "            ", 0, 33);
-                    writer.write(" iterations and\t" + collisions + "                      ", 0, 22);
-                    writer.write(" collisions\n", 0, 12);
+                    writer.write(" iterations and collisions completed after\t" + collisions + "                      ", 0, 50);
+                    writer.write(" iterations\n", 0, 12);
                     csvWriter.write(bitLength + ", " + (j + 1) + ", " + iterations + ", " + collisions + "\r\n");
 
                     System.out.println("Completed bit-" + bitLength + " test: " + j);
